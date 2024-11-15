@@ -36,9 +36,8 @@ def train_lasso(X_train, y_train):
 def evaluate(model, X_test, y_test):
     y_pred = model.predict(X_test)
     # performance metric, how to evaluate? - how close is y_pred to y_score
-    # use mean absolute error 
-    # y is standardized, so MAE would indicate how many standard deviations away y_pred is to y_true
-    # Calculate MAE for each class, 
+    # use R² score, the coefficient of determination --> value of 0.85 is a good cutoff value
+
  
 
 
