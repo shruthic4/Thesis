@@ -1,0 +1,141 @@
+---
+title: "Factor_Analysis_2024"
+output: html_document
+date: "2024-09-03"
+---
+
+```{r setup, include=FALSE}
+# This is a script for Factor Analysis for behavioral measures for MiND study #
+library(psych)
+library("psych")
+library(EFAtools)
+library(ggplot2)
+library(dplyr)
+
+setwd('/nfs/tpolk/mind/data/mastersheet')
+
+mind_beh_all <- read.csv('CombinedMasterGLX_new.csv')
+
+
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r categorize young or OAs or MCI}
+# change the target subset you want here::::::
+
+# HOAs:
+HOAs <- mind_beh_all %>% filter(Subgroup == 1 & AgeCategory_Young1 == 2)
+
+# MCIs:
+MCI <- mind_beh_all %>% filter(Subgroup == 2 & AgeCategory_Young1 == 2)
+
+# Young
+YA <- mind_beh_all %>% filter(Subgroup == 1 & AgeCategory_Young1 == 1)
+
+# MCI + HOA:
+OA<- mind_beh_all %>% filter(AgeCategory_Young1 == 2)
+
+# YA + HOA:
+Healthy<- mind_beh_all %>% filter(AgeCategory_Young1 == 1 | (Subgroup == 1 & AgeCategory_Young1 == 2) )
+
+```
+
+```{r prepare FA data for Cognition}
+#### We'll be running FA on all groups of our beh data
+
+##### Cognition FA ####
+Cog_fa <- c("Subject", "NIH_FL_USS", "NIH_LS_USS", "NIH_DCCS_USS", "NIH_PC_USS", "NIH_PSM_USS", "NIH_PV_USS", "NIH_OR_USS")
+# Cognition FA with more variables (VPA + RBMT)
+# Cog_fa <- c("Subject", "NIH_FL_USS", "NIH_LS_USS", "NIH_DCCS_USS", "NIH_PC_USS", "NIH_PSM_USS", "NIH_PV_USS", "NIH_OR_USS",  "RIV_SI_SS", "RIV_SD_SS" )
+
+mind_beh_cog_fa <- na.omit(HOAs[, Cog_fa])
+
+FA_data <- mind_beh_cog_fa[, -1]
+
+# scale data: standardize
+FA_data <- scale(FA_data)
+
+Subject <- mind_beh_cog_fa$Subject
+```
+
+
+```{r FA on Cog variables}
+## KMO adequacy check##
+KMO(FA_data)
+
+
+## Use EFA tools to determine the number of factors. Also runs Bartlett + KMO
+N_FACTORS(FA_data, method = "ML")
+
+```
+
+
+```{r FA on cognitive variables}
+## Factor Analaysis ## This is for four factors. You can change this as needed.
+
+fit <- fa(FA_data, 3, rotate="promax")
+
+print(fit, digits=2, cutoff=0.3, sort=TRUE)
+
+# Merge Cog Fa data with subject ID
+fa_scores <- cbind(Subject, fit$scores)
+
+# Rename columns based on FA output for groupings 
+# In this case: Group1: speed/EF, Group1: Crystallized, Group3: Memory
+colnames(fa_scores) <- c("Subject", "Speed/EF", "Crystallized", "Memory")
+
+#write.csv(fa_scores, file = "FA_HOA_cog_subjects.csv")
+
+# Merge Cog Fa data with all behavioral data
+Cog_fa_ALL <- merge(mind_beh_all, fa_scores, by = "Subject", all = TRUE)
+
+
+```
+
+
+```{r prepare FA on Sensation/Motor}
+Sen_Mot_fa <- c("Subject", "NIH_PBDom_USS", "NIH_PBNon_USS", "NIH_GSDom_USS", "NIH_GSNon_USS", "NIH_2M_USS", "fTORT_RT", "NIH_WIN_RightThresh", "NIH_WIN_LeftThresh", "NIH_VA_USS")
+
+mind_beh_sen_mot_fa <- na.omit(mind_beh_all[, Sen_Mot_fa])
+
+FA_data <- mind_beh_sen_mot_fa[, -1]
+
+Subject <- mind_beh_sen_mot_fa$Subject
+
+```
+
+```{r FA on Sensation/Motor variables}
+## KMO adequacy check##
+KMO(FA_data)
+
+## Bartlett checker ##
+bartlett.test(FA_data)
+
+
+## Use EFA tools to determine the number of factors. Also runs Bartlett + KMO
+N_FACTORS(FA_data, method = "ML")
+
+```
+
+```{r FA on sensation/motor variables}
+## Factor Analysis ## This is for four factors. You can change this as needed.
+
+fit <- fa(FA_data, 3, rotate="promax")
+
+# TODO: Save loadings to CSV
+stats <-  fit$loadings
+print(fit, digits=2, cutoff=0.3, sort=TRUE)
+# Merge Sen-motor Fa data with subject ID
+fa_scores <- cbind(Subject, fit$scores)
+write.csv(fa_scores, file = "FA_sen_mot_subjects.csv")
+# Merge Sen-motor Fa data with all behavioral data
+Sen_mot_ALL_fa <- merge(mind_beh_all, fa_scores, by = "Subject", all = TRUE)
+```
+
+
+
+```
+
+
+
+
